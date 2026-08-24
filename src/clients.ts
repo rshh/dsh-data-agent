@@ -338,17 +338,18 @@ function rewriteTopLevelLimit(sql: string, maxRows: number): string {
   return sql
 }
 
+const METADATA_IDENTIFIER = /^[\p{L}\p{M}\p{N}_$]+$/u
+
 /**
  * Validate and quote one schema/table identifier for a safe metadata query.
- * Identifiers are restricted to `[A-Za-z0-9_$]+` and then wrapped per type:
- * backticks (mysql/hive/impala) or double quotes (postgres/oracle/sqlite),
- * with the wrapping quote doubled for any interior occurrence. Rejects any
- * input that could cross the identifier boundary (`#`, `--`, `;`, `'`, `` ` ``,
- * `"`, `.`, `-` are all refused).
+ * Identifiers accept Unicode letters, combining marks and numbers plus `_`/`$`
+ * without normalizing or case-folding the database-provided text. Each value is
+ * then wrapped for its dialect. Whitespace, controls, punctuation and quoting
+ * delimiters remain outside the deliberately narrow metadata-input boundary.
  */
 export function sanitizeIdentifier(type: DatabaseType, identifier: string): string {
-  if (!/^[A-Za-z0-9_$]+$/.test(identifier)) {
-    throw new Error(`标识符含非法字符（仅允许字母、数字与 _ $）：${identifier}`)
+  if (!METADATA_IDENTIFIER.test(identifier)) {
+    throw new Error(`标识符含非法字符（仅允许 Unicode 字母、组合标记、数字与 _ $）：${identifier}`)
   }
   switch (type) {
     case 'mysql':
@@ -371,8 +372,8 @@ export function sanitizeIdentifier(type: DatabaseType, identifier: string): stri
  * interior `'` doubled). postgres/oracle metadata queries filter system
  * catalogs by NAME (a string value), not by identifier, so those positions
  * need a quoted literal — not {@link sanitizeIdentifier}'s identifier quoting.
- * The whitelist already excludes `'`, so doubling is a defense-in-depth no-op
- * here but keeps the helper correct for any future widened charset.
+ * The whitelist excludes `'`, so doubling is a defense-in-depth no-op here but
+ * keeps the helper correct for any future widened metadata-input boundary.
  */
 function quoteStringLiteral(value: string): string {
   return "'" + value.replace(/'/g, "''") + "'"
@@ -685,8 +686,9 @@ export function tableListingSql(type: DatabaseType, connection?: DatabaseConnect
 }
 
 /**
- * Metadata query per kind × type. `schema`/`table` are identifier whitelist
- * validated by the caller (`[A-Za-z0-9_$]`) before they reach here.
+ * Metadata query per kind × type. `schema`/`table` are validated by the shared
+ * connection service before they reach here; builders still quote identifier
+ * positions or escape value positions rather than concatenating raw text.
  */
 export function metadataQuery(
   kind: 'schemas' | 'tables' | 'describe',

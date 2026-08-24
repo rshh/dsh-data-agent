@@ -290,6 +290,45 @@ describe('DataAgentWorkbench composer entry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
+  it('selects and renders Unicode SQLite table metadata without rewriting names', async () => {
+    const metadataUrls: string[] = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/status')) {
+        return response({ connected: true, summary: { type: 'sqlite', database: '/tmp/中文.db' } })
+      }
+      if (url.includes('/schemas')) return response({ ok: true, schemas: ['main'] })
+      if (url.includes('/tables')) {
+        metadataUrls.push(url)
+        return response({ ok: true, tables: ['中文表名'] })
+      }
+      if (url.includes('/describe')) {
+        metadataUrls.push(url)
+        return response({ ok: true, columns: [{ name: '姓名', type: 'TEXT', nullable: true }] })
+      }
+      throw new Error(`unexpected fetch ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    renderWorkbench('data-agent')
+
+    fireEvent.click(await screen.findByRole('button', { name: '数据库工作台：已连接' }))
+    const dialog = screen.getByRole('dialog', { name: '数据库工作台' })
+    fireEvent.click(within(dialog).getByRole('tab', { name: '库表' }))
+    fireEvent.click(await within(dialog).findByRole('button', { name: /main/ }))
+    fireEvent.click(await within(dialog).findByRole('button', { name: /中文表名/ }))
+
+    expect(await within(dialog).findByText('姓名')).toBeTruthy()
+    expect(within(dialog).getByText('TEXT')).toBeTruthy()
+    expect(within(dialog).getByText('表结构 · 中文表名')).toBeTruthy()
+    expect(metadataUrls).toHaveLength(2)
+    const tablesUrl = new URL(metadataUrls[0]!, 'http://dsh.internal')
+    const describeUrl = new URL(metadataUrls[1]!, 'http://dsh.internal')
+    expect(tablesUrl.searchParams.get('schema')).toBe('main')
+    expect(describeUrl.searchParams.get('schema')).toBe('main')
+    expect(describeUrl.searchParams.get('table')).toBe('中文表名')
+    expect(metadataUrls[1]).toContain('%E4%B8%AD%E6%96%87%E8%A1%A8%E5%90%8D')
+  })
+
   it('keeps one Modal open, switches to schema after connect, and preserves SQL across close/reopen', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)

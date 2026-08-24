@@ -38,11 +38,10 @@ export declare function enforceReadRowLimit(sql: string, type: DatabaseType, max
 export declare const SQLSERVER_COLUMN_SEPARATOR = "\u001F";
 /**
  * Validate and quote one schema/table identifier for a safe metadata query.
- * Identifiers are restricted to `[A-Za-z0-9_$]+` and then wrapped per type:
- * backticks (mysql/hive/impala) or double quotes (postgres/oracle/sqlite),
- * with the wrapping quote doubled for any interior occurrence. Rejects any
- * input that could cross the identifier boundary (`#`, `--`, `;`, `'`, `` ` ``,
- * `"`, `.`, `-` are all refused).
+ * Identifiers accept Unicode letters, combining marks and numbers plus `_`/`$`
+ * without normalizing or case-folding the database-provided text. Each value is
+ * then wrapped for its dialect. Whitespace, controls, punctuation and quoting
+ * delimiters remain outside the deliberately narrow metadata-input boundary.
  */
 export declare function sanitizeIdentifier(type: DatabaseType, identifier: string): string;
 /** One deployment override for a database type's CLI client. */
@@ -112,8 +111,9 @@ export declare function buildStructuredQueryTemplate(type: DatabaseType, connect
  */
 export declare function tableListingSql(type: DatabaseType, connection?: DatabaseConnection): string;
 /**
- * Metadata query per kind × type. `schema`/`table` are identifier whitelist
- * validated by the caller (`[A-Za-z0-9_$]`) before they reach here.
+ * Metadata query per kind × type. `schema`/`table` are validated by the shared
+ * connection service before they reach here; builders still quote identifier
+ * positions or escape value positions rather than concatenating raw text.
  */
 export declare function metadataQuery(kind: 'schemas' | 'tables' | 'describe', type: DatabaseType, schema?: string, table?: string): string;
 /**

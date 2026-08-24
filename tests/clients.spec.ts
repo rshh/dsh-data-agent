@@ -316,6 +316,15 @@ describe('metadataQuery', () => {
     expect(metadataQuery('describe', 'doris', 'analytics', 'orders')).toBe('DESCRIBE `analytics`.`orders`;')
     expect(metadataQuery('describe', 'sqlserver', 'dbo', 'orders')).toContain("TABLE_NAME='orders'")
   })
+
+  it('preserves Unicode identifiers in quoted and string-literal metadata positions', () => {
+    expect(metadataQuery('describe', 'sqlite', undefined, '中文表名'))
+      .toBe('PRAGMA table_info("中文表名");')
+    expect(metadataQuery('describe', 'mysql', '销售库', '订单明细'))
+      .toBe('DESCRIBE `销售库`.`订单明细`;')
+    expect(metadataQuery('describe', 'postgres', '销售库', '订单明细'))
+      .toContain("table_schema='销售库' AND table_name='订单明细'")
+  })
 })
 
 describe('parseColumns', () => {
@@ -465,9 +474,30 @@ describe('sanitizeIdentifier', () => {
     expect(sanitizeIdentifier('sqlserver', 'events')).toBe('[events]')
   })
 
+  it('quotes Unicode identifiers for every delimiter family without rewriting them', () => {
+    expect(sanitizeIdentifier('mysql', '销售明细')).toBe('`销售明细`')
+    expect(sanitizeIdentifier('doris', '销售明细')).toBe('`销售明细`')
+    expect(sanitizeIdentifier('clickhouse', '销售明细')).toBe('`销售明细`')
+    expect(sanitizeIdentifier('hive', '销售明细')).toBe('`销售明细`')
+    expect(sanitizeIdentifier('impala', '销售明细')).toBe('`销售明细`')
+    expect(sanitizeIdentifier('postgres', '销售明细')).toBe('"销售明细"')
+    expect(sanitizeIdentifier('oracle', '销售明细')).toBe('"销售明细"')
+    expect(sanitizeIdentifier('sqlite', '中文表名')).toBe('"中文表名"')
+    expect(sanitizeIdentifier('sqlserver', '客户2026')).toBe('[客户2026]')
+  })
+
+  it('preserves combining-mark code points instead of normalizing them', () => {
+    const decomposed = 'Cafe\u0301'
+    expect(sanitizeIdentifier('sqlite', decomposed)).toBe(`"${decomposed}"`)
+    expect(sanitizeIdentifier('sqlite', decomposed)).not.toBe('"Café"')
+  })
+
   it('allows $ and _ but rejects injection-shaped characters', () => {
     expect(sanitizeIdentifier('postgres', 'a$b_c')).toBe('"a$b_c"')
-    for (const bad of ['a#b', 'a--b', 'a;b', "a'b", 'a`b', 'a"b', 'a.b', 'a-b', '']) {
+    for (const bad of [
+      'a#b', 'a--b', 'a;b', "a'b", 'a`b', 'a"b', 'a.b', 'a-b', 'a b', 'a\\b',
+      'a\nb', 'a\u0000b', '表😀', '',
+    ]) {
       expect(() => sanitizeIdentifier('mysql', bad)).toThrow()
     }
   })

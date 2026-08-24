@@ -189,6 +189,8 @@ DSH运行查询时需要本机能够访问目标数据库，并安装相应的�
 
 插件调用MySQL或Doris客户端时会内置`--default-character-set=utf8mb4`，确保Windows代码页不会使库名、表名、字段名或查询结果中的中文在进入DSH前乱码，无需在profile中重复配置该参数。
 
+库表元数据浏览支持由Unicode字母、组合标记、数字以及`_`、`$`组成的schema和表名，数据库返回的字段名会原样展示。例如SQLite中的`中文表名`及其`姓名`字段可以直接在工作台中浏览。为保持元数据SQL边界明确，schema和表名中的空白、控制字符、引号、反引号、反斜杠、分号、点号、连字符及其他标点仍会在启动数据库客户端前被拒绝。
+
 SQL Server查询使用T-SQL `TOP`或已有的`OFFSET ... FETCH`限行，绝不会追加`LIMIT`。为避免`sqlcmd`自身脚本能力绕过SQL边界，输入中的`GO`、`!!`、冒号命令和`$(...)`变量替换会在启动客户端前被拒绝。插件不会默认添加`-C`或其他“信任服务器证书”选项。
 
 如果客户端安装在公司工具链或其他自定义目录，可在当前profile的`data-agent`配置中补充搜索目录；需要锁定具体版本时则直接填写绝对命令路径，也可通过`args`添加其他CLI参数。当前profile的PATH始终优先，`searchPaths`在系统常见目录之前：
@@ -265,7 +267,7 @@ pnpm conformance
 | --- | --- |
 | 规范与阶段 | Community v0.15，Draft / Experimental |
 | 固定基线 | `dsh-ecosystem-spec@ec80a4be5d92bbb971655afd0f097bb5586a1a28`；`dsh-std@614dfa1ac168db79fcf4577cf0ebb34e2e3b944b` |
-| Manifest | `dsh-plugin.json`，`manifestVersion: 0.15`，包身份 `@yejiming/dsh-data-agent@0.1.1` |
+| Manifest | `dsh-plugin.json`，`manifestVersion: 0.15`，包身份 `@yejiming/dsh-data-agent@0.1.2` |
 | 准入结果 | 仓库内 eligible fixture 为 `compatible`；这不是实际 dsh-TUI Host 的准入结论 |
 | 证据等级 | `Parsed`；fixture negotiation 只记录为 `fixture-only`，不提升为 `Negotiated` |
 | 已执行环境 | 离线 parser/projector/definition 校验；`@dsh-std/adapter-dsh@0.1.0-rc3` 一次性本地 fixture 挂载/卸载 |

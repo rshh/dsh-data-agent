@@ -190,6 +190,8 @@ The plugin tries the active profile process PATH first. If that fails, it also c
 
 MySQL and Doris invocations include `--default-character-set=utf8mb4` by default, preventing Windows code pages from corrupting Chinese database, table, column, or query-result text before it reaches DSH. You do not need to repeat this argument in the profile.
 
+Schema and table names used for metadata browsing may contain Unicode letters, combining marks, numbers, `_`, and `$`; column names returned by the database are displayed unchanged. For example, a SQLite table named `中文表名` with a `姓名` column can be browsed directly in the workbench. To keep the metadata SQL boundary explicit, whitespace, controls, quotes, backticks, backslashes, semicolons, dots, hyphens, and other punctuation in schema or table inputs are still rejected before a database client starts.
+
 SQL Server reads use T-SQL `TOP` or an existing `OFFSET ... FETCH` clause and never append `LIMIT`. To prevent `sqlcmd` scripting from crossing the SQL boundary, `GO`, `!!`, colon commands, and `$(...)` substitutions are rejected before the client starts. The plugin does not add `-C` or another trust-server-certificate option by default.
 
 If a client lives in a company toolchain or another custom directory, add search directories to the current profile's `data-agent` config. Use an absolute command path when you need to pin one exact version, or use `args` for other CLI arguments. The current profile PATH always wins, and `searchPaths` is checked before platform defaults:
@@ -266,7 +268,7 @@ This package includes an experimental declaration for the [DSH Ecosystem Specifi
 | -------------------------| --------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Specification and stage | Community v0.15, Draft / Experimental                                                                                                                              |
 | Pinned baseline         | `dsh-ecosystem-spec@ec80a4be5d92bbb971655afd0f097bb5586a1a28`; `dsh-std@614dfa1ac168db79fcf4577cf0ebb34e2e3b944b`                                                  |
-| Manifest                | `dsh-plugin.json`, `manifestVersion: 0.15`, package identity `@yejiming/dsh-data-agent@0.1.1`                                                                      |
+| Manifest                | `dsh-plugin.json`, `manifestVersion: 0.15`, package identity `@yejiming/dsh-data-agent@0.1.2`                                                                      |
 | Admission decision      | The repository's eligible fixture is `compatible`; this is not an admission result from a real dsh-TUI Host                                                        |
 | Evidence level          | `Parsed`; fixture negotiation is recorded only as `fixture-only` and does not become `Negotiated` evidence                                                         |
 | Exercised environment   | Offline parser/projector/definition validation; disposable local mount/unmount with `@dsh-std/adapter-dsh@0.1.0-rc3`                                               |

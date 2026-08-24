@@ -30,6 +30,38 @@ async function waitForRun(service: Awaited<ReturnType<typeof createCatalogServic
 }
 
 describe('real SQLite Catalog smoke', () => {
+  it('lists and describes Chinese table metadata through the shared connection service', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-unicode-metadata-smoke-'))
+    const database = join(directory, 'unicode.db')
+    try {
+      execFileSync('sqlite3', [database, 'CREATE TABLE "中文表名" ("姓名" TEXT NOT NULL);'])
+
+      const runtime = new Context()
+      await runtime.plugin(SubprocessLocal)
+      const connections = createConnectionService(runtime, {
+        connectTimeoutMs: 10_000,
+        queryTimeoutMs: 10_000,
+        maxResultChars: 1_000_000,
+        maxQueryChars: 100_000,
+        introspectMaxTables: 10_000,
+        readonly: false,
+        clients: {},
+      })
+      const signal = new AbortController().signal
+
+      const connected = await connections.connect('unicode-metadata', {
+        type: 'sqlite', database, profileId: 'unicode-sqlite', name: 'Unicode SQLite fixture',
+      }, signal)
+      expect(connected.tables).toEqual(['中文表名'])
+      await expect(connections.listTables('unicode-metadata', 'main', signal))
+        .resolves.toEqual(['中文表名'])
+      await expect(connections.describe('unicode-metadata', 'main', '中文表名', signal))
+        .resolves.toEqual([{ name: '姓名', type: 'TEXT', nullable: false }])
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  }, 30_000)
+
   it('scans full and table scopes, diffs, survives disconnect, and serves all three model tools', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'dsh-catalog-smoke-'))
     const database = join(directory, 'catalog.db')

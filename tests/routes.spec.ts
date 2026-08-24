@@ -26,8 +26,15 @@ function routeFixture(ready = true) {
     async disconnect(...args: unknown[]) { calls.push({ method: 'disconnect', args }) },
     async status(...args: unknown[]) { calls.push({ method: 'status', args }); return summary },
     async listSchemas(...args: unknown[]) { calls.push({ method: 'listSchemas', args }); return ['public'] },
-    async listTables(...args: unknown[]) { calls.push({ method: 'listTables', args }); return ['users'] },
-    async describe(...args: unknown[]) { calls.push({ method: 'describe', args }); return [{ name: 'id', type: 'int' }] },
+    async listTables(...args: unknown[]) {
+      calls.push({ method: 'listTables', args })
+      return args[1] === '销售库' ? ['中文表名'] : ['users']
+    },
+    async describe(...args: unknown[]) {
+      calls.push({ method: 'describe', args })
+      if (String(args[2]).includes(';')) throw new Error('标识符含非法字符')
+      return args[2] === '中文表名' ? [{ name: '姓名', type: 'TEXT' }] : [{ name: 'id', type: 'int' }]
+    },
     async query(...args: unknown[]) { calls.push({ method: 'query', args }); return { exitCode: 0, stdout: '1\n', stderr: '', truncated: false } },
     async executeInteractive(...args: unknown[]) {
       calls.push({ method: 'executeInteractive', args })
@@ -148,6 +155,34 @@ describe('Web route adapter', () => {
     expect(fixture.calls.map(call => call.method)).toEqual([
       'status', 'listSchemas', 'listTables', 'describe', 'executeInteractive', 'disconnect',
     ])
+  })
+
+  it('round-trips percent-encoded Unicode metadata names and retains invalid-input errors', async () => {
+    const fixture = routeFixture()
+    const schema = encodeURIComponent('销售库')
+    const table = encodeURIComponent('中文表名')
+
+    expect((await dispatch(
+      fixture.handler,
+      'GET',
+      `/plugins/data-agent/tables?sessionId=s&schema=${schema}`,
+    )).body).toEqual({ ok: true, tables: ['中文表名'] })
+    expect((await dispatch(
+      fixture.handler,
+      'GET',
+      `/plugins/data-agent/describe?sessionId=s&schema=${schema}&table=${table}`,
+    )).body).toEqual({ ok: true, columns: [{ name: '姓名', type: 'TEXT' }] })
+
+    const metadataCalls = fixture.calls.filter(call => ['listTables', 'describe'].includes(call.method))
+    expect(metadataCalls[0]!.args.slice(0, 2)).toEqual(['s', '销售库'])
+    expect(metadataCalls[1]!.args.slice(0, 3)).toEqual(['s', '销售库', '中文表名'])
+
+    const rejected = await dispatch(
+      fixture.handler,
+      'GET',
+      `/plugins/data-agent/describe?sessionId=s&schema=${schema}&table=${encodeURIComponent('中文表名;DROP')}`,
+    )
+    expect(rejected).toMatchObject({ status: 400, body: { error: '标识符含非法字符' } })
   })
 
   it('does not report a durable profile as connected when credentials need restoring', async () => {

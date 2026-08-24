@@ -130,6 +130,27 @@ const serviceOptions: ConnectionServiceOptions = {
 const signal = () => new AbortController().signal
 
 describe('DataAgentConnectionService', () => {
+  it('preserves Unicode SQLite table and column names through shared metadata operations', async () => {
+    const host = fakeContext({
+      output: spec => spec.stdio.stdin.data.includes('PRAGMA table_info')
+        ? { stdout: '0|姓名|TEXT|0||0\n' }
+        : { stdout: '中文表名\n' },
+    })
+    const service = createConnectionService(host.ctx, serviceOptions)
+    service.set('unicode-sqlite', { type: 'sqlite', database: '/workspace/unicode.db' })
+
+    await expect(service.listTables('unicode-sqlite', 'main', signal()))
+      .resolves.toEqual(['中文表名'])
+    await expect(service.describe('unicode-sqlite', 'main', '中文表名', signal()))
+      .resolves.toEqual([{ name: '姓名', type: 'TEXT', nullable: true }])
+    expect(host.spawned[1]!.stdio.stdin.data).toBe('PRAGMA table_info("中文表名");\n')
+
+    const spawnCount = host.spawned.length
+    await expect(service.describe('unicode-sqlite', 'main', '中文表名;DROP', signal()))
+      .rejects.toThrow(/标识符含非法字符/)
+    expect(host.spawned).toHaveLength(spawnCount)
+  })
+
   it('uses a Catalog-specific metadata capture budget instead of the interactive SQL limit', async () => {
     const host = fakeContext({ output: () => ({ stdout: 'orders\n' }) })
     const service = createConnectionService(host.ctx, {
