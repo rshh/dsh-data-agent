@@ -29,10 +29,6 @@
 
 </p>
 
-<p align="center">
-  <img src="assets/features.webp" alt="DSH Data Agent Features" width="100%">
-</p>
-
 ## Product Highlights
 
 Tired of filing data requests, wrestling with complex SQL queries, exporting CSVs back and forth into Excel, and trying to decipher cryptic column abbreviations across hundreds of tables?
@@ -45,6 +41,10 @@ Tired of filing data requests, wrestling with complex SQL queries, exporting CSV
 - 🏷️ **AI-Powered Metric & Schema Governance**: Automatically scans databases to generate intuitive business explanations for tables and fields. Supports human review and custom metric definitions, ensuring every query relies on unified, accurate business definitions.
 - 🔒 **Local Security & Read-Only Protection**: Built-in support for read-only database accounts and read-only mode. All queries run locally with strict credential protection—your production data stays safe and confidential.
 - 🖥️ **Modern Web & High-Efficiency Terminal**: Use the intuitive Web UI to configure connections and explore charts visually, or switch to the keyboard-first terminal interface (dsh-tui) for rapid command-line workflows.
+
+<p align="center">
+  <img src="assets/features.webp" alt="DSH Data Agent Features" width="100%">
+</p>
 
 ## Quick Start
 
