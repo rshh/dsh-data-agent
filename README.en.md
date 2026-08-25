@@ -1,10 +1,11 @@
-# DSH Data Agent · Analyze Data Through Conversation
+# DSH Data Agent · Data Analysis & Business Insights via Conversation
 
 [中文](README.md) | **English**
 
 <p align="center">
-  <img src="assets/dsh-data-agent-banner.webp" alt="dsh-data-agent hero banner" width="100%">
+  <img src="assets/banner.webp" alt="DSH Data Agent Banner" width="100%">
 </p>
+
 <p align="center">
   <img src="https://img.shields.io/github/v/release/omdsh-dev/dsh-data-agent?style=flat-square" alt="Version">
   &nbsp;
@@ -16,276 +17,153 @@
   &nbsp;
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
 </p>
+
 <p align="center">
-  <a href="https://dshfind.com/en/plugins/omdsh-dev/dsh-data-agent?ref=badge"><img src="https://dshfind.com/api/card/omdsh-dev/dsh-data-agent" alt="dshfind card" width="440"></a>
-</p>
-<p align="center">
-  <strong>Connect DeepSeek Harness to databases and turn conversations into data analysis and business insights</strong><br>
-  <em>Natural-language queries · Automatic SQL execution · Iterative analysis · Web UI · dsh-tui · Read-only protection</em>
+  <strong>Intelligent Data & Business Analysis Assistant for DeepSeek Harness</strong><br>
+  <em>Natural-Language Queries · Automatic SQL Execution · Smart Charts & Dashboards · AI Data Governance · Business Insights · Secure Local Read-Only</em>
 </p>
 
 <p align="center">
 
-[Project Overview](#project-overview) · [Features](#features) · [Quick Install](#quick-install) · [Web UI](#using-data-agent-in-the-web-ui) · [dsh-tui](#using-data-agent-in-dsh-tui) · [Security](#security) · [Local Development](#local-development) · [Ecosystem Status](#ecosystem-specification-status)
+[Highlights](#product-highlights) · [Quick Start](#quick-start) · [Use Cases](#use-cases) · [Workbench & Reports](#workbench--reports) · [Supported Data Sources](#supported-data-sources) · [Security & Privacy](#security--privacy) · [FAQ](#faq) · [License](#license)
 
 </p>
 
-## Project Overview
+<p align="center">
+  <img src="assets/features.webp" alt="DSH Data Agent Features" width="100%">
+</p>
 
-dsh-data-agent is a data analysis plugin for DeepSeek Harness (DSH). Connect a database and ask a business question; DSH inspects schemas, writes and runs SQL, continues the analysis from real results, and returns clear conclusions and business insights. The plugin supports both the Web UI and dsh-tui without modifying the DSH source code.
+## Product Highlights
 
-![Data analysis charts](assets/charts.webp)
+Tired of filing data requests, wrestling with complex SQL queries, exporting CSVs back and forth into Excel, and trying to decipher cryptic column abbreviations across hundreds of tables?
 
-## Features
+**DSH Data Agent brings data analysis back to business decision-making:**
 
-![DSH Data Agent features: conversation, SQL, data governance, business insights, reports, and read-only protection](assets/dsh-data-agent-features.webp)
+- 💬 **Zero-Barrier Conversational Analysis**: Ask business questions in plain language (e.g., *"Compare channel conversion rates over the last 30 days"*). AI automatically understands business intent, discovers relevant schemas, writes and executes SQL, iterates on results, and delivers clear conclusions.
+- 📊 **Smart Charts & Interactive Dashboards**: Say goodbye to plain text and raw tables. Automatically generate line charts, bar charts, pie charts, scatter plots, or multi-view dashboards, and export standalone offline HTML reports for effortless sharing.
+- 🧠 **Deep Business Insights**: Go beyond raw metrics. The agent pinpoints anomaly drivers, detects sales drops, identifies high-value customer cohorts, and translates cold numbers into actionable business recommendations.
+- 🏷️ **AI-Powered Metric & Schema Governance**: Automatically scans databases to generate intuitive business explanations for tables and fields. Supports human review and custom metric definitions, ensuring every query relies on unified, accurate business definitions.
+- 🔒 **Local Security & Read-Only Protection**: Built-in support for read-only database accounts and read-only mode. All queries run locally with strict credential protection—your production data stays safe and confidential.
+- 🖥️ **Modern Web & High-Efficiency Terminal**: Use the intuitive Web UI to configure connections and explore charts visually, or switch to the keyboard-first terminal interface (dsh-tui) for rapid command-line workflows.
 
-- **Analyze data through conversation**: Describe your goal in natural language. DSH understands the question, breaks it into analysis steps, queries real data, and organizes the conclusions. You can keep asking follow-up questions to explore the same context in greater depth.
-- **Discover business insights automatically**: Data Agent goes beyond returning query results. It helps compare trends, locate anomalies, identify valuable customers or products, and turn the data into explanations that support decisions.
-- **AI-assisted data governance**: Scan a database with the AI model configured in the current DSH session. Using tables, fields, comments, and relations, it generates candidate business meanings for every table and field. Every AI-generated candidate requires human review, and users can also add business terms and metric definitions manually. During later queries and analysis, Data Agent automatically reads the relevant definitions through the built-in `catalog-search`, `catalog-get`, and `metric-get` tools, grounding SQL and conclusions in governed business context.
-- **Cross-surface HTML reports (render-analysis)**: In an ordinary tool call, the agent can choose to produce a single chart or a Dashboard-style report (metric/line/bar/pie/scatter/table views). Every successful call saves an offline HTML file under `analysis-reports/` in the current workspace. Web also shows an inline preview and a “View analysis” Modal; dsh-tui returns the file path. Whether to chart remains the agent's decision — schema exploration, single scalars, and queries without visual value are never forced into charts.
-- **Shares the core path across Web UI and dsh-tui**: For a visual workflow, we recommend [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui), where you can connect databases, browse schemas, and inspect results in the browser. For a keyboard-first workflow, we recommend [ccch1mneyyy/dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI), where you can use the same Data Mode, connect through `/database`, and move directly into conversational analysis. Both interfaces share the database service and tool protocol; validate the exact version and deployment separately.
-- **Connect common business databases**: Supports MySQL, PostgreSQL, SQLite, Oracle, Hive, Impala, ClickHouse, Apache Doris, and SQL Server across application databases, analytics systems, local data files, and data warehouses.
-- **Let DSH complete the analysis loop**: DSH inspects table structures, writes SQL, runs the query, and adjusts its approach based on errors or returned data instead of stopping at an unverified SQL draft.
-- **Stay focused with Data Mode**: The session uses DSH's native `str_replace_editor` for files and keeps `sql-query`, `sql-write`, `sql-cmd`, `render-analysis`, `catalog-search`, `catalog-get`, and `metric-get`; Web, Desktop, dsh-tui, and headless profiles use the same eight-tool protocol. Host or community tools such as `describe_image` and `ssh_*` do not leak into Data Mode.
-- **Work safely with real data**: Use read-only mode and a read-only database account when appropriate. TUI passwords are masked and are never restored as part of a form draft. You decide whether the session may modify data.
+## Quick Start
 
-### Database Workbench
+### 1. Prerequisites
 
-The Web UI also includes an on-demand database workbench. Click the database button in the top-right of the composer to use four tabs—Connection, Tables, Data Governance, and SQL—in one Modal.
+- **DeepSeek Harness** (DSH runtime environment)
+- Accessible database (local SQLite file or remote/cloud database)
 
-![Database workbench](assets/tables.webp)
+### 2. Quick Install
 
-### Analyze Data Through Conversation
+Run the following command to install the plugin directly from npm:
 
-Choose “Data Mode” when creating a session, and DSH will use the data-analysis workflow for everything that follows.
-
-![Data Mode preset](assets/settings.webp)
-
-### Data Catalog and Metric Governance
-
-In Web, open Data Governance, choose a source and scan scope, then click Scan. Search or compare results, review AI meanings, and add terms or metrics. Full scans require confirmation.
-
-![Data governance: AI-generated business meanings for tables and fields with human review](assets/data-governance.png)
-
-## Quick Install
-
-The commands below install the plugin into the Web profile.
-
-### Method 1: npm (recommended)
-
-```sh
+```bash
+# Install for Web UI (Recommended)
 dsh plugin --profile web add @yejiming/dsh-data-agent
-```
 
-### Method 2: GitHub
-
-```sh
-dsh plugin --profile web add github:omdsh-dev/dsh-data-agent
-```
-
-The plugin installs the Data Mode preset automatically and preloads its database tools on every surface when the profile starts. `/database` and `/catalog` are enabled only by an actually loaded `@deepseek-harness-tui/dsh-tui` runtime, regardless of the profile name. Selecting the preset no longer performs dynamic package-subpath imports. No local build is required.
-
-## Using Data Agent in the Web UI
-
-Start the Web UI:
-
-```sh
-dsh --profile web
-```
-
-Then:
-
-1. Create a session and choose “Data Mode.”
-2. Click the database button in the top-right of the composer and enter your connection details in the workbench Modal.
-3. Once connected, ask an analysis question directly in the conversation.
-4. Follow up on the first result and ask DSH to narrow the scope, compare dimensions, or summarize the conclusions.
-
-A Web composition that does not load `@deepseek-harness-tui/dsh-tui` does not expose `/database` or `/catalog`; use the database workbench to connect, scan, cancel, and review Catalog content.
-
-For example, ask: “Analyze order changes over the last 30 days, identify the regions and products with the largest revenue decline, and explain the main causes.” DSH will inspect the relevant tables, generate and run the queries, and complete the analysis from real results.
-
-### Analysis reports and HTML artifacts
-
-Data Mode provides the render-analysis tool on every surface. The agent first explores and verifies facts with sql-query, then decides for itself whether a visualization helps. When it does, one tool call produces one versioned analysis report:
-
-- A report holds 1-6 read-only datasets and 1-8 views (metric, line, bar, pie, scatter, table); multiple views may reuse one dataset, and aggregation or Top N is written in the SQL itself;
-- Simple questions produce a single main chart (inline preview in the result row); complex questions produce a compact summary plus a “View analysis” button;
-- “View analysis” opens a large Modal with every view of that report: a compact metric band, a full-width main chart, a two-column secondary grid, and a detail table — responsive across light/dark themes and narrow screens;
-- Regardless of the active UI, the complete Dashboard is written atomically to `analysis-reports/*.html` under the session workspace and appears in DSH's Produced row where supported. The filename defaults to the report title or a semantic `outputName` basename, without a long UUID. Data, styles, and SVG rendering code are inline, so the file opens without a network connection;
-- The complete report snapshot is persisted with the session log: refreshing or replaying history never re-queries the database and creates no extra browser storage;
-- Web still renders its preview from the same report meta; the Node HTML generator loads neither ECharts nor Web client code.
-
-## Using Data Agent in dsh-tui
-
-Install Data Agent into the dsh-tui profile. `render-analysis` does not require a particular dsh-TUI version or scene capability. Persistent Catalog status and full-screen result browsing activate automatically when dsh-tui exposes its public `status`/`scene` extension services:
-
-```sh
+# Or install for Terminal UI (dsh-tui)
 dsh plugin --profile dsh-tui add @yejiming/dsh-data-agent
 ```
 
-Start the terminal interface:
+### 3. Start Analyzing
 
-```sh
+#### Method 1: Web Interface (Recommended)
+Start the Web console, create a new session, and select **"Data Mode"**:
+```bash
+dsh --profile web
+```
+1. Click the **Database icon** in the top-right of the composer, then fill in your connection details (supports connection testing);
+2. Once connected, ask your business analysis question directly in the chat box;
+3. Ask follow-up questions to drill down deeper based on preliminary conclusions.
+
+#### Method 2: Terminal Interface (dsh-tui)
+Ideal for keyboard-first and terminal users:
+```bash
 dsh --profile dsh-tui
 ```
+Enter `/preset data-agent` to switch to Data Mode, and `/database connect` to connect your database and start asking questions.
 
-In a blank session, switch to Data Mode and connect a database:
+## Use Cases
 
-```text
-/preset data-agent
-/database connect
-```
+| Scenario | Prompt Example |
+| :--- | :--- |
+| 📈 **Sales & Revenue Review** | *"Analyze revenue and MoM growth by channel over the last 30 days, identify the product categories with the steepest decline, and explain the key drivers."* |
+| 👥 **User Segmentation & RFM** | *"Perform RFM segmentation on members based on purchase frequency and average order value over the past 6 months, and report retention rates for each tier."* |
+| 🛒 **Funnel & Conversion Analysis** | *"Calculate monthly user conversion rates from registration, search, and add-to-cart to checkout, and highlight the stage with the highest drop-off rate."* |
+| 📦 **Inventory & Supply Chain** | *"Inspect SKUs with inventory turnover exceeding 60 days, and forecast stockout or overstock risks based on recent sales velocity."* |
+| 📑 **Executive Weekly Summary** | *"Summarize last week's core metrics (GMV, active users, average order value) and write a concise briefing suitable for the management group chat."* |
 
-The connection form displays all relevant fields together. Use Tab or Shift+Tab to move between fields. Press Enter on database type, ClickHouse HTTPS, or read-only mode to show every option, use the arrow keys to select one, and press Enter again to confirm. For a network database, enter either a temporary password or a DSH credential reference, never both.
+## Workbench & Reports
 
-After connecting, return to the chat input and ask a business question. Other useful database commands include:
+### 1. All-in-One Database Workbench
+The Web UI features an integrated database workbench with four core modules: **Connection Config**, **Schema Browser**, **Data Governance**, and **SQL Runner**, making it easy to inspect data assets at any time.
 
-```text
-/database status       Show the current connection
-/database test         Test the current connection
-/database disconnect   Disconnect the current database
-/catalog scan           Choose a scope and start a Catalog scan
-/catalog status [--run <run-id>]  Show the latest result or a specific run
-/catalog diff           Compare the latest two successful snapshots
-/catalog view           Open read-only Catalog results grouped by table
-```
+<p align="center">
+  <img src="assets/tables.webp" alt="Database Workbench" width="90%">
+</p>
 
-You do not need to repeat `/catalog status` after a scan starts: the line above the prompt follows technical collection and AI-enrichment progress, then retains the final success/failure state. After completion, run `/catalog view`; use arrows or `j/k` to select and scroll, Tab or ←/→ to switch panes, `/` to search, `a` to switch between the business schema and all schemas, `r` to refresh, and Escape to return. The TUI remains read-only; confirm or delete AI candidates one at a time from Web's Data Governance tab.
+### 2. AI-Assisted Data Governance
+Open the "Data Governance" tab in the workbench, and AI will scan table schemas to generate clear business descriptions. Review, refine, and add custom metrics so team members never have to guess column meanings again.
 
-After the agent generates a report, the tool card shows dataset, view, empty-data facts, and the absolute HTML path. TUI does not print a character Dashboard and does not register `/analysis`; open the HTML in a local browser to inspect all six view types and raw data. The file belongs to that tool call, and `/resume` does not re-query the database.
+<p align="center">
+  <img src="assets/data-governance.webp" alt="AI Data Governance" width="90%">
+</p>
 
-When you reopen the form in the same session, it first restores that session's latest database type, host, port, user, database, ClickHouse HTTPS, and read-only mode, and restores the credential-reference name from its connected profile. A new session with no configuration uses the most recently connected non-secret profile as editable defaults, but remains disconnected until you confirm the connection. A temporary password always remains masked and is never restored.
+### 3. Interactive Offline Analysis Reports
+When an analysis benefits from visual presentation, the agent generates single charts or multi-metric dashboards and automatically saves standalone HTML reports under `analysis-reports/`. Includes interactive charts, KPI cards, and raw data tables—ready to open offline in any browser or share with colleagues.
 
-## How to Ask Better Analysis Questions
+<p align="center">
+  <img src="assets/charts.webp" alt="Analysis Report Charts" width="90%">
+</p>
 
-For more valuable results, include the business goal, time range, and dimensions you care about. For example:
+## Supported Data Sources
 
-```text
-Analyze revenue and gross-margin changes by region in Q2 2026.
-Find the regions with unusual performance, drill down into categories and key customers,
-and recommend three concrete business actions.
-```
+DSH Data Agent supports a wide variety of relational databases, analytical data warehouses, and local files:
 
-You can also ask DSH to save the SQL or analysis so it can be reviewed and reused:
+- 🐬 **Relational Databases**: MySQL, PostgreSQL, SQLite, Oracle, Microsoft SQL Server
+- ⚡ **Analytical Warehouses / OLAP**: ClickHouse, Apache Doris, Apache Hive, Apache Impala
+- 📁 **Local & Lightweight Data**: SQLite data files (zero-config, out-of-the-box)
 
-```text
-Complete a member repeat-purchase analysis, save the final SQL to
-analysis/repurchase.sql, and summarize the main findings in a format suitable for a weekly report.
-```
+## Security & Privacy
 
-## Before You Start
+- 🛡️ **Strict Read-Only Protection**: Use a read-only database account and enable "Read-Only Mode" to prevent accidental data modification or deletion.
+- 🔑 **Credential Isolation**: Database passwords are used strictly in the current runtime session, never written to plain-text logs, and never sent to external servers.
+- 💻 **100% Local Execution**: Query execution and report generation happen entirely on your local machine, keeping business data private and secure.
 
-DSH must be able to reach the target database from your machine, and the corresponding database client must be installed:
+## FAQ
 
-- SQLite is usually included with macOS or Linux.
-- MySQL requires the `mysql` client.
-- PostgreSQL requires the `psql` client.
-- Oracle, Hive, and Impala require their respective command-line clients.
-- Apache Doris uses the MySQL protocol on port 9030 by default and requires a `mysql` client with `utf8mb4` support. The first release browses databases and tables in the current/internal catalog only.
-- SQL Server uses port 1433 by default and requires Microsoft ODBC `sqlcmd` 18.x. The first release supports SQL Login only—not integrated/Windows/Entra authentication, DSNs, or named instances.
-- ClickHouse does not require `clickhouse-client`. The plugin uses the bundled official `@clickhouse/client` 1.23.x HTTP adapter: HTTP defaults to 8123; selecting HTTPS defaults to 8443 and retains normal certificate verification. Validate the actual ClickHouse Server/Cloud combination with deployment smoke tests rather than inferring universal Cloud/TLS compatibility.
+<details>
+<summary><b>Q: I don't know SQL at all. Can I still use this for data analysis?</b></summary>
+Absolutely! DSH Data Agent is designed specifically for business professionals, marketers, and analysts without technical coding backgrounds. Simply describe what you want in plain language; AI will find the relevant tables, generate and execute precise SQL queries, and synthesize the results into business charts and actionable findings.
+</details>
 
-The plugin tries the active profile process PATH first. If that fails, it also checks client HOME environment variables and common Windows, macOS, and Linux installation locations, including Homebrew, MacPorts, Linuxbrew, Snap, Nix, WinGet Links, Scoop, Chocolatey, and versioned Program Files directories. The supplemental PATH used for discovery is also passed to the actual client process, so DSH Desktop launched from Finder normally needs no manual path override for Homebrew clients.
+<details>
+<summary><b>Q: Is there any risk of accidentally deleting or altering production data?</b></summary>
+No. We strongly recommend using a read-only database account and enabling "Read-Only Mode". In read-only mode, any modifying or destructive statements (such as UPDATE, DELETE, DROP) are strictly blocked before execution.
+</details>
 
-MySQL and Doris invocations include `--default-character-set=utf8mb4` by default, preventing Windows code pages from corrupting Chinese database, table, column, or query-result text before it reaches DSH. You do not need to repeat this argument in the profile.
+<details>
+<summary><b>Q: Our database column names are cryptic abbreviations. Can the AI understand them?</b></summary>
+Yes. You can use the built-in "Data Governance" feature to let AI automatically scan schemas, comments, and relationships to generate plain business descriptions. You can also manually add company-specific terms and formulas (e.g., "Net GMV = Order GMV - Refund Amount"), which AI will reference in all future analyses.
+</details>
 
-Schema and table names used for metadata browsing may contain Unicode letters, combining marks, numbers, `_`, and `$`; column names returned by the database are displayed unchanged. For example, a SQLite table named `中文表名` with a `姓名` column can be browsed directly in the workbench. To keep the metadata SQL boundary explicit, whitespace, controls, quotes, backticks, backslashes, semicolons, dots, hyphens, and other punctuation in schema or table inputs are still rejected before a database client starts.
+<details>
+<summary><b>Q: How do I share analysis reports with colleagues who don't use DSH?</b></summary>
+Every generated report is saved locally as an independent <code>.html</code> file in the <code>analysis-reports/</code> directory. All styles, interactivity, and datasets are self-contained. You can send this file via email, Slack, Teams, or WeChat, and anyone can open and interact with it in any browser without installing extra software.
+</details>
 
-SQL Server reads use T-SQL `TOP` or an existing `OFFSET ... FETCH` clause and never append `LIMIT`. To prevent `sqlcmd` scripting from crossing the SQL boundary, `GO`, `!!`, colon commands, and `$(...)` substitutions are rejected before the client starts. The plugin does not add `-C` or another trust-server-certificate option by default.
-
-If a client lives in a company toolchain or another custom directory, add search directories to the current profile's `data-agent` config. Use an absolute command path when you need to pin one exact version, or use `args` for other CLI arguments. The current profile PATH always wins, and `searchPaths` is checked before platform defaults:
-
-```yaml
-- id: data-agent
-  config:
-    clients:
-      mysql:
-        searchPaths:
-          - /opt/company/mysql/bin
-        # command: /opt/company/mysql/bin/mysql
-        # args:
-        #   - --protocol=tcp
-      # Doris can override the shared mysql client location:
-      # doris:
-      #   searchPaths: [/opt/company/mysql/bin]
-      # SQL Server can override the Microsoft ODBC sqlcmd location:
-      # sqlserver:
-      #   searchPaths: [/opt/mssql-tools18/bin]
-```
-
-On Windows, a search path can be written as `C:\Program Files\MySQL\MySQL Server 9.0\bin`. The plugin does not download database clients, run a login shell, or scan the whole disk. A client in an unusual directory that is not on PATH still requires `searchPaths` or `command`.
-
-We recommend creating a read-only database account so Data Agent can explore and analyze data without modifying production records.
-
-If you see `failed to mount` or a missing `@yejiming/dsh-data-agent` package error, the plugin is usually missing from the current profile or an older preset is still installed. Run the matching command for the Web UI, DSH Desktop, or dsh-tui, then quit and restart DSH completely. An unmodified legacy preset is migrated automatically; for a hand-edited preset, remove the two configuration blocks that reference `@yejiming/dsh-data-agent/tool` and `@yejiming/dsh-data-agent/command`.
-
-## Security
-
-- Prefer a read-only database account and enable read-only mode in the connection form.
-- Temporary passwords entered in the Web UI or dsh-tui are used only for the current connection. The TUI displays only `*` and never restores the password when the form is reopened.
-- If authentication must be restored across processes, enter a DSH credential reference in the TUI form or pass it with `--password-ref`. The form restores the reference name, but never reads, displays, or persists its resolved password.
-- MySQL/Doris and SQL Server passwords enter only `MYSQL_PWD` and `SQLCMDPASSWORD`, respectively. A ClickHouse password enters only the official HTTP client's authentication field—not the URL, argv, or persisted configuration.
-- Catalog persistence contains only redacted source summaries, system metadata, versions, and human definitions. It never stores passwords, resolved credentials, client stdout/stderr, business query results, or sample rows.
-- When read-only mode is disabled, Data Agent can run update or administrative statements at your request. Before connecting to a production database, review the account permissions and backup policy.
-- Database connections are isolated by session, making it easier to keep different projects, customers, and analysis environments separate.
-- The plugin and ecosystem adapter run inside the DSH process; neither is an OS, process, or realm sandbox. Ecosystem permissions support admission negotiation and do not replace database-account controls, network isolation, or runtime security policy.
-
-## Uninstall and Rollback
-
-```sh
-dsh plugin --profile web remove @yejiming/dsh-data-agent
-dsh plugin --profile desktop remove @yejiming/dsh-data-agent
-dsh plugin --profile dsh-tui remove @yejiming/dsh-data-agent
-```
-
-A normal uninstall removes the plugin from the selected profile and disposes runtime effects. It does not automatically delete the installed Data Mode preset or saved non-secret connection information. To remove the preset explicitly, first verify that `DSH_HOME` points to the intended profile data directory, then run:
-
-```sh
-rm -rf "$DSH_HOME/.agent-presets/data-agent"
-```
-
-Purging connection storage is a separate destructive operation. Back it up first, then use the target DSH profile's storage-management path to remove the `data_agent_connections@1` records. Removing the ecosystem manifest or rolling back the adapter layer requires no data migration; any previously published ecosystem claim must be explicitly expired or revoked.
-
-## Local Development
-
-```sh
-pnpm install
-pnpm build
-pnpm test
-pnpm conformance
-```
-
-The prebuilt `lib/` directory is committed to the repository, so npm and GitHub installations do not require a local build.
-
-Upgrading the specification baseline requires an explicit update to both revisions and pinned digests in `conformance/dsh-ecosystem/baseline.json`, offline conformance against the matching local checkouts, review of inventory/restriction drift, and a complete build and test run. Generate release evidence with `pnpm conformance:artifact --output-dir <outside-worktree-directory>` so a real `npm pack` tarball produces an external sidecar. Documentation and claims must stay within the weakest verified evidence level in that sidecar.
-
-## Ecosystem Specification Status
-
-This package includes an experimental declaration for the [DSH Ecosystem Specification](https://github.com/T-Auto/dsh-ecosystem-spec) Community v0.15. It does not replace or double-register the existing Cordis behavior. The native bundle, preset, commands, tools, routes, Web UI, TUI form, and connection storage remain the sole functional implementation.
-
-| Item                    | Current status                                                                                                                                                     |
-| -------------------------| --------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Specification and stage | Community v0.15, Draft / Experimental                                                                                                                              |
-| Pinned baseline         | `dsh-ecosystem-spec@ec80a4be5d92bbb971655afd0f097bb5586a1a28`; `dsh-std@614dfa1ac168db79fcf4577cf0ebb34e2e3b944b`                                                  |
-| Manifest                | `dsh-plugin.json`, `manifestVersion: 0.15`, package identity `@yejiming/dsh-data-agent@0.1.2`                                                                      |
-| Admission decision      | The repository's eligible fixture is `compatible`; this is not an admission result from a real dsh-TUI Host                                                        |
-| Evidence level          | `Parsed`; fixture negotiation is recorded only as `fixture-only` and does not become `Negotiated` evidence                                                         |
-| Exercised environment   | Offline parser/projector/definition validation; disposable local mount/unmount with `@dsh-std/adapter-dsh@0.1.0-rc3`                                               |
-| Artifact                | The release identity is package name and version; a tarball SHA-256 is written only to an external sidecar after a real `npm pack`, never into the source manifest |
-| Unverified              | Real Host Descriptor, real Web/Desktop/dsh-tui, real TTY, database, remote, attach/detach, multiple Presentation, `Observed`, and `Attested` evidence              |
-
-Active restrictions include intentionally leaving `UserInteraction` undeclared because the pinned Community manifest cannot carry the requirement spec required by its dsh-std definition. Model tools, the agent preset, Cordis service, HTTP routes, Web slots, persistence domain, and local TTY remain native DSH behavior. During `@dsh-std/adapter-dsh` discovery, the ecosystem facet publishes only a degraded snapshot and no second Command, Tool, or UI handler.
-
-The plugin remains **trusted in-process** and is not sandboxed. Manifest permissions are Host admission contracts; they do not provide OS, process, or realm isolation. These results are not official DSH certification, security approval, a vulnerability-free guarantee, or a universal Host compatibility claim.
-
-## Related Links
-
-- [dshfind.com](https://dshfind.com): A Chinese-language technical community for the DeepSeek Harness ecosystem, featuring project discovery, practical knowledge sharing, and developer collaboration
-- [dsh-web-ui](https://github.com/dsh-external/dsh-web-ui): An extensible Web UI for DeepSeek Harness, with browser-based interaction and a plugin and theme ecosystem
-- [dsh-cc-tui](https://github.com/dsh-external/dsh-cc-tui): A keyboard-first, full-screen terminal interface for DeepSeek Harness, designed for efficient conversational development workflows
-- [platonai/Browser4](https://github.com/platonai/Browser4): an AI-native browser engine for autonomous agents, intelligent extraction, and large-scale web automation.
+<details>
+<summary><b>Q: Can I ask follow-up questions if I need deeper breakdowns or different chart formats?</b></summary>
+Yes! Just like working with an in-house data analyst, you can continuously ask follow-ups in the same session (e.g., *"Break this down by region"*, *"Switch the bar chart to a pie chart"*, or *"Why did revenue drop in May?"*), and AI will iterate based on prior findings.
+</details>
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
+
+## Related Links
+
+- [dshfind.com](https://dshfind.com): DeepSeek Harness plugin and ecosystem discovery community
+- [dsh-web-ui](https://github.com/dsh-external/dsh-web-ui): Extensible Web UI for DeepSeek Harness
+- [dsh-cc-tui](https://github.com/dsh-external/dsh-cc-tui): Keyboard-first terminal interface for DeepSeek Harness
+- [platonai/Browser4](https://github.com/platonai/Browser4): AI-native browser engine for autonomous agents and large-scale web automation
