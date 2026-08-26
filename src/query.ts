@@ -15,6 +15,7 @@ import { createClient } from '@clickhouse/client'
 import type {} from '@deepseek-ai/dsh-subprocess'
 import type { DatabaseConnection, DatabaseType } from './connections.ts'
 import {
+  buildClientStdin,
   buildClientTemplate,
   buildIntrospectTemplate,
   buildStructuredQueryTemplate,
@@ -188,18 +189,19 @@ export async function runClientQuery(
   else externalSignal.addEventListener('abort', onExternalAbort, { once: true })
 
   try {
+    const mode = options.mode ?? (introspect ? 'introspect' : 'query')
     if (connection.type === 'clickhouse') {
       return await runClickHouseQuery(
         connection,
         sql,
-        { ...options, mode: options.mode ?? (introspect ? 'introspect' : 'query') },
+        { ...options, mode },
         controller.signal,
       )
     }
     if (connection.type === 'sqlserver') assertSqlServerSafeInput(sql)
-    const template = options.mode === 'structured'
+    const template = mode === 'structured'
       ? buildStructuredQueryTemplate(connection.type, connection, options.clients[connection.type])
-      : options.mode === 'introspect' || introspect
+      : mode === 'introspect'
         ? buildIntrospectTemplate(connection.type, connection, options.clients[connection.type])
         : buildClientTemplate(connection.type, connection, options.clients[connection.type])
     const resolution = await resolveClientExecutable({
@@ -217,7 +219,7 @@ export async function runClientQuery(
       stdio: {
         // The Oracle/Hive connect prefix (template.stdinPrefix) is written
         // before the SQL, so their credentials travel on stdin, never argv.
-        stdin: { data: `${template.stdinPrefix}${sql}\n` },
+        stdin: { data: buildClientStdin(connection.type, mode, template.stdinPrefix, sql) },
         stdout: { maxBytes: options.maxResultChars },
         stderr: { maxBytes: options.maxResultChars },
       },
@@ -247,6 +249,10 @@ export async function runClientQuery(
       stdout: connection.type === 'sqlserver' ? stripSqlServerRowCountFooter(stdout.text) : stdout.text,
       stderr: stderr.text,
       truncated: stdout.truncated || stderr.truncated,
+    }
+    if (connection.type === 'oracle' && mode === 'structured'
+      && result.exitCode === 0 && result.stdout.trim() === '') {
+      throw new Error('Oracle SQL*Plus结构化查询成功退出但stdout为空，未返回可解析的列标题或数据')
     }
     return result
   } finally {

@@ -395,6 +395,59 @@ describe('sql-query / sql-write / sql-cmd hardening', () => {
     expect(captured!.stdio.stdin).toEqual({ data: 'SELECT * FROM orders LIMIT 25\n' })
   })
 
+  it('sql-query returns Oracle rows from Windows CRLF output and completes the SQL*Plus script', async () => {
+    let captured: SpawnSpec | undefined
+    const { definitions, store } = makeContext({
+      spawn(spec) {
+        captured = spec
+        return {
+          done: Promise.resolve({ exitCode: 0, signal: null }),
+          collected: {
+            stdout: { readFrom: () => ({ text: 'ANSWER|LABEL\r\n42|ok\r\n', nextOffset: 0, lossy: false }) },
+            stderr: { readFrom: () => ({ text: '', nextOffset: 0, lossy: false }) },
+          },
+        }
+      },
+    }, { maxRows: 25 })
+    store.set('session-a', {
+      type: 'oracle', host: 'oracle.internal', port: 1521, user: 'reader', database: 'ORCL', password: 'secret',
+    })
+
+    const result = await definitions['sql-query']!.execute!(
+      { sql: "SELECT 42 ANSWER, 'ok' LABEL FROM dual" },
+      execOf('session-a'),
+    )
+
+    expect(result).toMatchObject({
+      columns: ['ANSWER', 'LABEL'],
+      rows: [{ ANSWER: '42', LABEL: 'ok' }],
+      truncated: false,
+    })
+    expect(captured!.argv).toEqual(['/usr/bin/sqlplus', '-S', '/nolog'])
+    expect(captured!.stdio.stdin).toEqual({
+      data: expect.stringContaining(
+        "SELECT * FROM (SELECT 42 ANSWER, 'ok' LABEL FROM dual) dsh_limit WHERE ROWNUM <= 25;\nEXIT SUCCESS\n",
+      ),
+    })
+  })
+
+  it('sql-query rejects Oracle structured success with empty stdout', async () => {
+    const { definitions, store } = makeContext({
+      spawn() {
+        return {
+          done: Promise.resolve({ exitCode: 0, signal: null }),
+          collected: {
+            stdout: { readFrom: () => ({ text: '\r\n', nextOffset: 0, lossy: false }) },
+            stderr: { readFrom: () => ({ text: '', nextOffset: 0, lossy: false }) },
+          },
+        }
+      },
+    })
+    store.set('session-a', { type: 'oracle', database: 'ORCL' })
+    await expect(definitions['sql-query']!.execute!({ sql: 'SELECT 42 FROM dual' }, execOf('session-a')))
+      .rejects.toThrow(/Oracle SQL\*Plus.*stdout为空/)
+  })
+
   it('sql-query rejects write statements', async () => {
     let spawned = false
     const { definitions, store } = makeContext({

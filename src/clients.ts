@@ -593,17 +593,42 @@ function stdinPrefix(type: DatabaseType, connection: DatabaseConnection): string
 function structuredStdinPrefix(type: DatabaseType, connection: DatabaseConnection): string {
   if (type !== 'oracle') return stdinPrefix(type, connection)
   const lines = [
-    'SET PAGESIZE 0',
+    'SET PAGESIZE 50000',
     'SET FEEDBACK OFF',
     'SET HEADING ON',
     'SET UNDERLINE OFF',
+    'SET LINESIZE 32767',
+    'SET WRAP OFF',
+    'SET RECSEP OFF',
+    'SET ECHO OFF',
+    'SET VERIFY OFF',
     "SET COLSEP '|'",
     'SET TRIMSPOOL ON',
+    'WHENEVER OSERROR EXIT FAILURE',
+    'WHENEVER SQLERROR EXIT FAILURE',
     connection.user !== undefined
       ? `connect ${connection.user}${connection.password !== undefined ? `/${connection.password}` : ''}@${connection.host ?? '127.0.0.1'}:${connection.port ?? defaultDatabasePort('oracle')}/${connection.database}`
       : '',
   ].filter(line => line !== '')
   return `${lines.join('\n')}\n`
+}
+
+/**
+ * Compose one complete client stdin payload. Oracle's structured SQL*Plus
+ * mode is a script protocol rather than an EOF-delimited command: normalize
+ * the already-validated statement to one terminator and exit explicitly.
+ * Raw/introspection modes and every other client preserve the legacy payload.
+ */
+export function buildClientStdin(
+  type: DatabaseType,
+  mode: 'query' | 'introspect' | 'structured',
+  prefix: string,
+  sql: string,
+): string {
+  if (type === 'oracle' && mode === 'structured') {
+    return `${prefix}${stripTrailingTerminator(sql)};\nEXIT SUCCESS\n`
+  }
+  return `${prefix}${sql}\n`
 }
 
 /** Apply one deployment override's extra args in front of the built-in flags. */

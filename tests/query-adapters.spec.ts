@@ -46,6 +46,29 @@ function sqlServerContext(stdout = '') {
   return { ctx: ctx as never, calls }
 }
 
+function oracleContext(stdout = '', exitCode = 0) {
+  const calls: { resolved: unknown[]; spawn?: Record<string, unknown> } = { resolved: [] }
+  const ctx = {
+    subprocess: {
+      async resolveExecutable(...args: unknown[]) {
+        calls.resolved.push(args)
+        return 'C:\\Oracle\\bin\\sqlplus.exe'
+      },
+      spawn(input: Record<string, unknown>) {
+        calls.spawn = input
+        return {
+          done: Promise.resolve({ exitCode }),
+          collected: {
+            stdout: { readFrom: () => ({ text: stdout, lossy: false }) },
+            stderr: { readFrom: () => ({ text: '', lossy: false }) },
+          },
+        }
+      },
+    },
+  }
+  return { ctx: ctx as never, calls }
+}
+
 describe('ClickHouse HTTP query adapter', () => {
   beforeEach(() => { clickHouseMocks.createClient.mockReset() })
 
@@ -159,5 +182,48 @@ describe('SQL Server subprocess adapter', () => {
     )).rejects.toThrow(/禁止 sqlcmd/)
     expect(calls.resolved).toHaveLength(0)
     expect(calls.spawn).toBeUndefined()
+  })
+})
+
+describe('Oracle SQL*Plus structured adapter', () => {
+  const connection = {
+    type: 'oracle' as const,
+    host: 'oracle.internal',
+    port: 1521,
+    user: 'reader',
+    password: 'oracle-secret',
+    database: 'ORCL',
+  }
+
+  it('uses a heading-preserving profile and sends a complete Windows-safe SQL*Plus script', async () => {
+    const { ctx, calls } = oracleContext('ANSWER|LABEL\r\n42|ok\r\n')
+    await expect(runClientQuery(
+      ctx,
+      connection,
+      'SELECT 42 ANSWER, \'ok\' LABEL FROM dual;; -- trailing',
+      { ...options, mode: 'structured' },
+      new AbortController().signal,
+    )).resolves.toMatchObject({ exitCode: 0, stdout: 'ANSWER|LABEL\r\n42|ok\r\n' })
+
+    const spawn = calls.spawn as { argv: string[]; stdio: { stdin: { data: string } } }
+    expect(spawn.argv).toEqual(['C:\\Oracle\\bin\\sqlplus.exe', '-S', '/nolog'])
+    expect(spawn.stdio.stdin.data).toContain('SET PAGESIZE 50000\n')
+    expect(spawn.stdio.stdin.data).toContain('SET HEADING ON\n')
+    expect(spawn.stdio.stdin.data).toContain('WHENEVER SQLERROR EXIT FAILURE\n')
+    expect(spawn.stdio.stdin.data).toContain('WHENEVER OSERROR EXIT FAILURE\n')
+    expect(spawn.stdio.stdin.data).toContain("SELECT 42 ANSWER, 'ok' LABEL FROM dual;\n")
+    expect(spawn.stdio.stdin.data).toMatch(/EXIT SUCCESS\n$/)
+    expect(spawn.stdio.stdin.data).not.toContain('dual;;')
+  })
+
+  it('rejects a zero-exit empty stdout instead of reporting a false empty result', async () => {
+    const { ctx } = oracleContext(' \r\n')
+    await expect(runClientQuery(
+      ctx,
+      connection,
+      'SELECT 42 FROM dual',
+      { ...options, mode: 'structured' },
+      new AbortController().signal,
+    )).rejects.toThrow(/Oracle SQL\*Plus.*stdout为空/)
   })
 })

@@ -90,6 +90,13 @@ export interface ClientTemplate {
     stdinPrefix: string;
 }
 /**
+ * Compose one complete client stdin payload. Oracle's structured SQL*Plus
+ * mode is a script protocol rather than an EOF-delimited command: normalize
+ * the already-validated statement to one terminator and exit explicitly.
+ * Raw/introspection modes and every other client preserve the legacy payload.
+ */
+export declare function buildClientStdin(type: DatabaseType, mode: 'query' | 'introspect' | 'structured', prefix: string, sql: string): string;
+/**
  * Build one client invocation for a query execution (plain output). Flags
  * come BEFORE the connection arguments everywhere: sqlite3 takes
  * `[options] <database>`, and putting flags first is harmless for the others.

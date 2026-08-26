@@ -604,6 +604,39 @@ describe('DataAgentConnectionService', () => {
     expect(write).toMatchObject({ kind: 'message', exitCode: 0, stdout: 'write ok\n' })
   })
 
+  it('returns Oracle rows in the Web workbench and rejects false empty structured success', async () => {
+    const host = fakeContext({
+      output: spec => {
+        if (spec.stdio.stdin.data.includes('user_tables')) return { stdout: 'DUAL\n' }
+        if (spec.stdio.stdin.data.includes('SELECT 99')) return { stdout: '\r\n' }
+        return { stdout: 'ANSWER|LABEL\r\n42|ok\r\n' }
+      },
+    })
+    const service = createConnectionService(host.ctx, serviceOptions)
+    await service.connect('oracle-web', {
+      type: 'oracle', host: 'oracle.internal', port: 1521, user: 'reader', database: 'ORCL', password: 'secret',
+    }, signal())
+
+    await expect(service.executeInteractive(
+      'oracle-web',
+      "SELECT 42 ANSWER, 'ok' LABEL FROM dual",
+      signal(),
+    )).resolves.toEqual({
+      kind: 'table',
+      columns: ['ANSWER', 'LABEL'],
+      rows: [{ ANSWER: '42', LABEL: 'ok' }],
+      elapsedMs: expect.any(Number),
+      truncated: false,
+      maxRows: 50_000,
+    })
+    expect(host.spawned[1]!.stdio.stdin.data).toContain(
+      "SELECT * FROM (SELECT 42 ANSWER, 'ok' LABEL FROM dual) dsh_limit WHERE ROWNUM <= 50001;\nEXIT SUCCESS\n",
+    )
+
+    await expect(service.executeInteractive('oracle-web', 'SELECT 99 FROM dual', signal()))
+      .rejects.toThrow(/Oracle SQL\*Plus.*stdout为空/)
+  })
+
   it('redacts a resolved secret from client stdout and stderr', async () => {
     const host = fakeContext({
       secret: () => 'leaky-secret',

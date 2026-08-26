@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildClientStdin,
   buildClientTemplate,
   buildIntrospectTemplate,
   buildStructuredQueryTemplate,
@@ -515,6 +516,31 @@ describe('structured query template and read row limit', () => {
     expect(buildStructuredQueryTemplate('postgres', postgresConnection).args).toEqual([
       '-A', '-h', 'pg.internal', '-p', '5433', '-U', 'owner', '-d', 'analytics',
     ])
+    const oracle = buildStructuredQueryTemplate('oracle', oracleConnection)
+    expect(oracle.args).toEqual(['-S', '/nolog'])
+    expect(oracle.stdinPrefix).toContain('SET PAGESIZE 50000')
+    expect(oracle.stdinPrefix).toContain('SET HEADING ON')
+    expect(oracle.stdinPrefix).toContain('SET LINESIZE 32767')
+    expect(oracle.stdinPrefix).toContain('SET WRAP OFF')
+    expect(oracle.stdinPrefix).toContain('WHENEVER OSERROR EXIT FAILURE')
+    expect(oracle.stdinPrefix).toContain('WHENEVER SQLERROR EXIT FAILURE')
+    expect(oracle.stdinPrefix).not.toContain('SET PAGESIZE 0')
+  })
+
+  it('composes a complete Oracle structured script with exactly one terminator and explicit exit', () => {
+    const prefix = buildStructuredQueryTemplate('oracle', oracleConnection).stdinPrefix
+    expect(buildClientStdin('oracle', 'structured', prefix, 'SELECT 42 FROM dual;; -- trailing')).toBe(
+      `${prefix}SELECT 42 FROM dual;\nEXIT SUCCESS\n`,
+    )
+  })
+
+  it('preserves the legacy EOF-delimited stdin for Oracle raw and introspection modes', () => {
+    const raw = buildClientTemplate('oracle', oracleConnection)
+    expect(buildClientStdin('oracle', 'query', raw.stdinPrefix, 'SELECT 42 FROM dual')).toBe(
+      `${raw.stdinPrefix}SELECT 42 FROM dual\n`,
+    )
+    expect(raw.stdinPrefix).toContain('SET PAGESIZE 0')
+    expect(raw.stdinPrefix).toContain('SET HEADING OFF')
   })
 
   it('appends a top-level LIMIT to an unbounded SELECT', () => {

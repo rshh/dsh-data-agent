@@ -66,6 +66,14 @@ describe('assertSqlServerSafeInput', () => {
 })
 
 describe('parseStructuredQueryOutput', () => {
+  it('parses Oracle SQL*Plus pipe output with Windows CRLF line endings', () => {
+    expect(parseStructuredQueryOutput('oracle', 'ANSWER|LABEL\r\n42|ok\r\n', 100)).toEqual({
+      columns: ['ANSWER', 'LABEL'],
+      rows: [{ ANSWER: '42', LABEL: 'ok' }],
+      rowLimitExceeded: false,
+    })
+  })
+
   it('parses mysql tab-separated header + rows', () => {
     expect(parseStructuredQueryOutput('mysql', 'id\tname\n1\tAlice\n2\tBob\n', 100)).toEqual({
       columns: ['id', 'name'],

@@ -212,6 +212,33 @@ describe('render-analysis tool', () => {
     expect(result.datasets[0]!.rows).toEqual([['3月', '30'], ['1月', '10'], ['2月', '20']])
   })
 
+  it('renders Oracle rows from Windows CRLF output through the complete SQL*Plus script', async () => {
+    const { agentDefinitions, store, captured } = makeContext({
+      spawns: [spawnOk('month|revenue\r\n2026-01|10\r\n')],
+    })
+    store.set('session-a', {
+      type: 'oracle', host: 'oracle.internal', port: 1521, user: 'reader', database: 'ORCL', password: 'secret',
+    })
+    const result = await agentDefinitions['render-analysis']!.execute!(BASE_ARGS, execOf('session-a')) as AnalysisReportV1
+
+    expect(result.datasets[0]).toMatchObject({
+      columns: ['month', 'revenue'],
+      rows: [['2026-01', '10']],
+    })
+    const stdin = (captured[0]!.stdio.stdin as { data: string }).data
+    expect(stdin).toContain('SELECT month, revenue FROM t ORDER BY month')
+    expect(stdin).toMatch(/ROWNUM <= 100;\nEXIT SUCCESS\n$/)
+  })
+
+  it('rejects Oracle zero-exit empty stdout before creating an analysis report', async () => {
+    const { agentDefinitions, store } = makeContext({ spawns: [spawnOk('\r\n')] })
+    store.set('session-a', { type: 'oracle', database: 'ORCL' })
+
+    await expect(agentDefinitions['render-analysis']!.execute!(BASE_ARGS, execOf('session-a')))
+      .rejects.toThrow(/render-analysis.*Oracle SQL\*Plus.*stdout为空/)
+    expect(existsSync(join(testWorkspace, 'analysis-reports'))).toBe(false)
+  })
+
   it('stops after a failing dataset, discards earlier results and names the dataset', async () => {
     const { agentDefinitions, store, captured } = makeContext({
       spawns: [
