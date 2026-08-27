@@ -1,5 +1,7 @@
 # DSH Data Agent · Data Analysis & Business Insights via Conversation
 
+[![dshfind](https://dshfind.com/api/badge/omdsh-dev/dsh-data-agent?metric=downloads&lang=en)](https://dshfind.com/en/plugins/omdsh-dev/dsh-data-agent?ref=badge)
+
 [中文](README.md) | **English**
 
 <p align="center">

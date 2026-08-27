@@ -1,5 +1,7 @@
 # DSH Data Agent · 用对话分析数据与商业洞察
 
+[![dshfind](https://dshfind.com/api/badge/omdsh-dev/dsh-data-agent?metric=downloads&lang=zh)](https://dshfind.com/zh/plugins/omdsh-dev/dsh-data-agent?ref=badge)
+
 **中文** | [English](README.en.md)
 
 <p align="center">
