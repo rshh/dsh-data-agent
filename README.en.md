@@ -9,6 +9,8 @@
 <p align="center">
   <img src="https://img.shields.io/github/v/release/omdsh-dev/dsh-data-agent?style=flat-square" alt="Version">
   &nbsp;
+  <a href="https://dshfind.com/en/plugins/omdsh-dev/dsh-data-agent?ref=badge"><img src="https://dshfind.com/api/badge/omdsh-dev/dsh-data-agent" alt="dshfind badge"></a>
+  &nbsp;
   <a href="https://dshfind.com/en/plugins/omdsh-dev/dsh-data-agent?ref=badge"><img src="https://dshfind.com/api/badge/omdsh-dev/dsh-data-agent?metric=downloads" alt="dshfind downloads"></a>
   &nbsp;
   <img src="https://img.shields.io/github/stars/omdsh-dev/dsh-data-agent?style=flat-square" alt="Stars">
